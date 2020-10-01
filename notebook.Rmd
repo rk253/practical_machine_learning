@@ -1,0 +1,86 @@
+---
+title: "Peer Graded Assignment: Prediction Assignment Writeup"
+
+output: html_notebook
+---
+
+
+## Load packages and seed for reproduceable results
+```{r}
+library(caret)
+set.seed(51971)
+```
+
+## Loading data
+#### Load training data replacing empty/NA values with NA
+```{r}
+full_data <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", na.strings = c("", "NA"))
+```
+
+
+#### Load testing data replacing empty/NA values with NA
+```{r}
+testing_data <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", na.strings = c("", "NA"))
+```
+
+## Cleaning data
+#### Get column names without NA values
+```{r}
+columns <- colnames(full_data)[!colSums(is.na(full_data)) > 0]
+columns
+```
+
+#### Remove the first 7 columns as they do not add value to the process
+```{r}
+columns <- columns[8: length(columns)]
+columns
+```
+
+#### Restrict data to the cleaned/accepted columns
+```{r}
+pruned_data <- full_data[columns]
+```
+
+## Spliting data
+#### To perform cross validation, training data is partitioned into training (75%) and testing
+```{r}
+train_data = createDataPartition(pruned_data$classe, p = 0.75)[[1]]
+training = pruned_data[ train_data,]
+testing = pruned_data[-train_data,]
+```
+
+## Model validation
+#### I am going to run 3 rpart, rf and lda.The goal is to pick the best performing model
+
+### Random partitioning trees
+```{r}
+model_rpart <- train(classe ~ ., data = training, method = "rpart")
+predict_rpart<- predict(model_rpart, testing)
+confusionMatrix(as.factor(testing$classe), predict_rpart)
+```
+
+
+#### Random forest
+```{r}
+model_rf <- train(classe ~ ., data = training, method = "rf")
+predict_rf <- predict(model_rf, testing)
+confusionMatrix(predict_rf, as.factor(testing$classe))
+```
+
+#### Linear discriminatory analysis
+```{r}
+model_lda <- train(classe ~ ., data = training, method = "lda")
+predict_lda <- predict(model_lda, testing)
+confusionMatrix(as.factor(testing$classe), predict_lda)
+```
+
+
+## Testing
+#### From the above you can see that RF performs best at 99.4%, followed by LDA at 69.8% and lastly rpart at 49.6%
+
+#### From the above, we then use rf on the actual testing data
+```{r}
+testing_rf <- predict(model_rf, testing_data)
+testing_rf
+```
+
